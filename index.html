@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0f2340">
+<meta name="description" content="Игра-шутка для соседей: попробуйте убрать снег в СНТ «Кольчугино», пока правление ищет отмазки.">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E❄️%3C/text%3E%3C/svg%3E">
+<title>СНТ «Кольчугино» ЗИМОЙ</title>
+<style>
+  :root {
+    --bg: #0f2340;
+    --bg2: #17345e;
+    --snow: #f7fbff;
+    --snow-edge: #d9e4f2;
+    --clean: #8a929c;
+    --clean-dark: #6f7781;
+    --yellow: #ffc61a;
+    --yellow-dark: #b78400;
+    --orange: #ff9f1c;
+    --green: #2a9d5c;
+    --card: #1a2433;
+    --text: #ffffff;
+    --muted: #c9d6ea;
+    /* ширина трактора: зависит от высоты экрана, но не меньше 38px */
+    --tw: clamp(38px, 6.6vh, 84px);
+    --tw: clamp(38px, 6.6dvh, 84px);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body {
+    margin: 0; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    overflow: hidden;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    /* без задержки и масштабирования по двойному тапу; щипок-зум остаётся */
+    touch-action: manipulation;
+    overscroll-behavior: none;
+  }
+  /* случайное выделение текста при быстрых тапах */
+  .screen, .overlay { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  body { background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 70%); }
+
+  .screen {
+    position: fixed; inset: 0;
+    height: 100vh; height: 100dvh;
+    display: flex; flex-direction: column; align-items: center;
+    overflow-x: hidden; overflow-y: auto;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  }
+  /* центрирование распорками: если контент выше экрана, верх не обрезается, а прокручивается */
+  .center-screen { justify-content: flex-start; text-align: center; gap: 18px; }
+  .center-screen::before, .center-screen::after { content: ""; flex: 1 0 0; }
+
+  /* ---------- Кнопки ---------- */
+  .btn {
+    font: inherit;
+    font-size: clamp(22px, 5.4vw, 30px);
+    font-weight: 800;
+    letter-spacing: .02em;
+    color: #1d1400;
+    background: linear-gradient(180deg, #ffd84a 0%, #ffb300 100%);
+    border: none;
+    border-radius: 18px;
+    min-height: 72px;
+    width: min(100%, 440px);
+    padding: 14px 24px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 var(--yellow-dark), 0 10px 24px rgba(0,0,0,.35);
+    touch-action: manipulation;
+    user-select: none; -webkit-user-select: none;
+    transition: transform .08s, box-shadow .08s, filter .08s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--yellow-dark), 0 4px 10px rgba(0,0,0,.35); filter: brightness(.93); }
+  .btn:focus-visible { outline: 4px solid #fff; outline-offset: 4px; }
+  .pulse { animation: pulse 1.6s ease-in-out infinite; }
+  .pulse:active { animation: none; }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1);    box-shadow: 0 6px 0 var(--yellow-dark), 0 0 0 0 rgba(255,198,26,.55); }
+    50%      { transform: scale(1.04); box-shadow: 0 6px 0 var(--yellow-dark), 0 0 0 14px rgba(255,198,26,0); }
+  }
+
+  /* ---------- Снег (титр и ночь) ---------- */
+  .snow { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .snow i {
+    position: absolute; top: -12px; left: var(--x);
+    width: var(--s); height: var(--s);
+    border-radius: 50%;
+    background: #fff;
+    opacity: var(--o);
+    animation: fall var(--d) linear var(--dl) infinite;
+  }
+  @keyframes fall {
+    from { transform: translate(0, -12px); }
+    to   { transform: translate(var(--dx), 105vh); }
+  }
+  .screen > *:not(.snow) { position: relative; z-index: 1; }
+
+  /* ---------- Титр ---------- */
+  .title-h {
+    margin: 0;
+    font-size: clamp(30px, 8vw, 54px);
+    line-height: 1.15;
+    font-weight: 900;
+    text-shadow: 0 3px 0 rgba(0,0,0,.3);
+  }
+  .title-h span { color: var(--yellow); }
+  .title-lines { display: flex; flex-direction: column; gap: 8px; font-size: clamp(18px, 4.6vw, 24px); color: var(--muted); line-height: 1.35; }
+  .title-lines p { margin: 0; }
+  .title-art { position: relative; width: min(80vw, 300px); height: 70px; margin: 4px 0 6px; }
+  .title-art .road { position: absolute; left: 0; right: 0; bottom: 0; height: 22px; border-radius: 11px; background: var(--snow); box-shadow: inset 0 -4px 0 var(--snow-edge); }
+  .title-art .tractor { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); --tw: 76px; }
+
+  /* ---------- Трактор (жёлтый, CSS) ---------- */
+  .tractor {
+    width: var(--tw);
+    height: calc(var(--tw) * .66);
+    pointer-events: none;
+  }
+  .tr-inner { position: absolute; inset: 0; }
+  .tr-cab, .tr-hood, .tr-blade, .tr-wheel, .tr-pipe, .tr-win, .tr-light { position: absolute; }
+  .tr-cab {
+    left: 10%; bottom: 28%; width: 36%; height: 70%;
+    background: var(--yellow);
+    border: 2px solid var(--yellow-dark);
+    border-radius: 5px 5px 2px 2px;
+  }
+  .tr-win {
+    left: 18%; top: 14%; width: 64%; height: 42%;
+    background: #9fd3ff; border: 2px solid #5f4800; border-radius: 3px;
+  }
+  .tr-hood {
+    left: 40%; right: 12%; bottom: 28%; height: 36%;
+    background: var(--yellow);
+    border: 2px solid var(--yellow-dark);
+    border-radius: 3px 9px 3px 3px;
+  }
+  .tr-pipe { left: 60%; bottom: 60%; width: 6%; height: 22%; background: #333; border-radius: 2px 2px 0 0; }
+  .tr-light { right: 13%; bottom: 52%; width: 7%; height: 9%; background: #fff6c2; border-radius: 2px; }
+  .tr-blade {
+    right: 0; bottom: 3%; width: 11%; height: 55%;
+    background: linear-gradient(90deg, #9aa3ad, #d6dbe1);
+    border: 2px solid #4b525a; border-radius: 2px 6px 6px 2px;
+  }
+  .tr-wheel { bottom: 0; border-radius: 50%; background: #1d1d1d; border: 2px solid #000; }
+  .tr-wheel::after { content: ""; position: absolute; inset: 30%; border-radius: 50%; background: var(--yellow); }
+  .tr-wheel.rear  { left: 2%;  width: 40%; aspect-ratio: 1; height: auto; }
+  .tr-wheel.front { right: 14%; width: 24%; aspect-ratio: 1; height: auto; }
+  .tractor.moving .tr-inner { animation: bob .18s ease-in-out infinite alternate; }
+  @keyframes bob { from { transform: translateY(0); } to { transform: translateY(-2px); } }
+
+  /* ---------- Игровой экран ---------- */
+  #game {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+    padding-top: max(10px, env(safe-area-inset-top));
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    overflow-x: hidden; overflow-y: auto;
+  }
+  /* плашки переносятся сами: на телефоне 2 строки, на широком экране — одна */
+  .hud {
+    width: 100%; max-width: 900px;
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 0 16px 10px;
+    font-size: clamp(15px, 4.2vw, 22px); font-weight: 800;
+    flex: 0 0 auto;
+  }
+  .hud .pill {
+    flex: 1 1 auto; text-align: center;
+    background: rgba(255,255,255,.1); border-radius: 12px; padding: 5px 10px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .field {
+    position: relative;
+    width: 100%; max-width: 900px;
+    flex: 1 1 auto; min-height: 0;
+    display: flex; flex-direction: column; gap: clamp(4px, 1vh, 10px);
+    padding: 0 16px;
+  }
+  .street { flex: 1 1 0; min-height: calc(var(--tw) * .72); display: flex; align-items: center; gap: 10px; }
+  .street-label {
+    flex: 0 0 auto; width: 2.6em; text-align: right;
+    font-size: clamp(18px, 4.4vw, 24px); font-weight: 800; color: #fff;
+  }
+  .track {
+    position: relative; flex: 1 1 auto; height: 100%;
+    border-radius: 10px;
+    background: var(--snow);
+    box-shadow: inset 0 -5px 0 var(--snow-edge), inset 0 3px 0 rgba(255,255,255,.9);
+    transition: background-color .6s, box-shadow .6s;
+    overflow: hidden;
+  }
+  .street.clean .track {
+    background: var(--clean)
+      repeating-linear-gradient(90deg, transparent 0 22px, rgba(255,255,255,.55) 22px 40px, transparent 40px 62px)
+      center / 100% 3px no-repeat;
+    box-shadow: inset 0 -4px 0 var(--clean-dark), inset 0 4px 0 #fff, inset 0 -8px 0 #fff;
+  }
+  .track .tractor {
+    position: absolute; left: 4px; top: 50%;
+    margin-top: calc(var(--tw) * -.33);
+    transition-property: left;
+    transition-duration: 0s;
+  }
+
+  .banner {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--green); color: #fff;
+    font-size: clamp(22px, 5.6vw, 32px); font-weight: 800;
+    padding: 16px 26px; border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.45);
+    white-space: nowrap; z-index: 5;
+    animation: pop .25s ease-out;
+  }
+  @keyframes pop { from { transform: translate(-50%, -50%) scale(.85); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+
+  .ticker {
+    width: 100%; max-width: 900px;
+    flex: 0 0 auto;
+    margin-top: 10px;
+    display: flex; align-items: center;
+    background: rgba(0,0,0,.28);
+    border-top: 1px solid rgba(255,255,255,.12); border-bottom: 1px solid rgba(255,255,255,.12);
+    overflow: hidden;
+  }
+  .ticker-icon { flex: 0 0 auto; padding: 0 10px 0 14px; font-size: 22px; background: inherit; z-index: 1; }
+  .ticker-viewport { flex: 1 1 auto; overflow: hidden; min-width: 0; }
+  .ticker-strip {
+    display: inline-flex; white-space: nowrap;
+    padding: 9px 0;
+    font-size: clamp(17px, 4.2vw, 21px); color: #e8f0fb;
+    animation: ticker var(--tdur, 200s) linear infinite;
+    will-change: transform;
+  }
+  .ticker-strip span { padding-right: 2.2em; }
+  .ticker-strip span::before { content: "• "; color: var(--yellow); }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  .controls {
+    flex: 0 0 auto; width: 100%;
+    display: flex; justify-content: center;
+    padding: 12px 16px 0;
+    min-height: 92px;
+  }
+  .controls .btn.off { visibility: hidden; }
+
+  /* ---------- Карточка правления ---------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+    background: rgba(5, 12, 24, .78);
+    animation: fade .2s ease-out;
+  }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  .overlay {
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+             max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  .card {
+    width: min(100%, 540px);
+    max-height: 100%;
+    background: var(--card);
+    border: 2px solid #34445c;
+    border-radius: 20px;
+    padding: 20px 18px 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    animation: rise .25s ease-out;
+  }
+  /* прокручивается только текст, кнопка всегда видна внизу карточки */
+  .card-body {
+    flex: 0 1 auto; min-height: 0; width: 100%;
+    overflow-y: auto; overscroll-behavior: contain;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .card .btn { flex: 0 0 auto; }
+  @keyframes rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .card-head { font-size: clamp(16px, 4vw, 20px); font-weight: 800; letter-spacing: .14em; color: var(--muted); }
+  .card-icon { font-size: clamp(48px, 13vw, 68px); line-height: 1.1; }
+  .card-quote {
+    margin: 0;
+    font-size: clamp(22px, 5.8vw, 32px);
+    line-height: 1.32; font-weight: 700;
+    overflow-wrap: break-word; word-break: normal; hyphens: manual;
+  }
+  .card .btn { margin-top: 8px; }
+
+  /* ---------- Итоги / финал ---------- */
+  .h2 { margin: 0; font-size: clamp(30px, 8vw, 46px); font-weight: 900; }
+  .stats { display: flex; flex-direction: column; gap: 10px; font-size: clamp(20px, 5.2vw, 28px); }
+  .stats p { margin: 0; }
+  .stats b { color: var(--yellow); }
+  .report {
+    width: min(100%, 560px);
+    margin: 0;
+    background: var(--card); border: 2px solid #34445c; border-radius: 18px;
+    padding: 20px;
+    font-size: clamp(20px, 5.2vw, 27px); line-height: 1.35; font-weight: 700;
+    overflow-wrap: break-word;
+  }
+  .report-icon { font-size: 44px; display: block; margin-bottom: 6px; }
+
+  /* ---------- Ночь ---------- */
+  #night { background: linear-gradient(180deg, #050b18 0%, #0b1730 70%, #13213b 100%); }
+  .scene { position: relative; width: min(76vw, 300px); aspect-ratio: 5 / 4; flex: 0 0 auto; }
+  .ground { position: absolute; left: -10%; right: -10%; bottom: -6%; height: 18%; background: #e6edf7; border-radius: 50% 50% 0 0; }
+  .house { position: absolute; left: 16%; width: 68%; bottom: 6%; height: 46%; background: #1b2638; border-radius: 2px; }
+  .roof-snow, .roof { position: absolute; left: 6%; width: 88%; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+  .roof-snow { bottom: calc(52% - 1px); height: 44%; background: #f1f6fc; }
+  .roof { bottom: 52%; height: 38%; background: #111a28; left: 9%; width: 82%; }
+  .chimney { position: absolute; left: 64%; bottom: 72%; width: 8%; height: 16%; background: #111a28; }
+  .chimney::before { content: ""; position: absolute; left: -14%; right: -14%; top: -18%; height: 26%; background: #f1f6fc; border-radius: 6px 6px 2px 2px; }
+  .window {
+    position: absolute; left: 38%; top: 24%; width: 24%; height: 36%;
+    background:
+      linear-gradient(90deg, transparent 46%, #6b4b00 46% 54%, transparent 54%),
+      linear-gradient(0deg, transparent 46%, #6b4b00 46% 54%, transparent 54%),
+      #ffd34d;
+    border: 3px solid #0b1220;
+    box-shadow: 0 0 26px 8px rgba(255, 200, 60, .5);
+  }
+  .door { position: absolute; left: 12%; bottom: 0; width: 16%; height: 56%; background: #0e1625; border-radius: 3px 3px 0 0; }
+  .house-snow { position: absolute; left: -4%; right: -4%; bottom: -2px; height: 14%; background: #e6edf7; border-radius: 40% 40% 0 0; }
+  .night-a { margin: 0; font-size: clamp(26px, 7vw, 40px); font-weight: 800; }
+  .night-b { margin: 0; font-size: clamp(19px, 4.8vw, 25px); color: var(--muted); max-width: 560px; line-height: 1.35; }
+
+  /* ---------- Узкие и низкие экраны ---------- */
+  @media (max-width: 360px) {
+    .hud { font-size: 15px; padding-left: 10px; padding-right: 10px; }
+    .hud { gap: 5px; }
+    .hud .pill { padding: 4px 6px; }
+    .field { padding: 0 10px; }
+    .street { gap: 6px; }
+    .street-label { width: 2.3em; }
+  }
+  @media (max-height: 680px) {
+    .hud { padding-bottom: 6px; gap: 4px 8px; }
+    .controls { min-height: 76px; padding-top: 8px; }
+    .controls .btn { min-height: 60px; padding: 8px 20px; }
+    .ticker { margin-top: 6px; }
+    .ticker-strip { padding: 6px 0; }
+    .center-screen { gap: 12px; }
+    .title-art { height: 54px; }
+    .scene { width: min(60vw, 240px); }
+  }
+
+  /* Очень низкий экран (телефон лёжа): компактная карточка и финал */
+  @media (max-height: 520px) {
+    .card { padding: 12px 16px 14px; gap: 8px; }
+    .card-body { gap: 4px; }
+    .card-head { font-size: 15px; }
+    .card-icon { font-size: 34px; }
+    .card-quote { font-size: 21px; line-height: 1.28; }
+    .card .btn { margin-top: 2px; min-height: 58px; font-size: 22px; }
+    .h2 { font-size: 26px; }
+    .stats { gap: 4px; font-size: 19px; }
+    .report { padding: 10px 16px; font-size: 18px; }
+    .report-icon { font-size: 26px; margin-bottom: 2px; }
+    .btn { min-height: 58px; }
+  }
+
+  /* Телефон в альбомной ориентации: поле слева, панель и кнопка справа */
+  @media (orientation: landscape) and (max-height: 520px) {
+    #game {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(200px, 32%);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-areas: "field hud" "field controls" "ticker ticker";
+      align-items: stretch;
+    }
+    .hud { grid-area: hud; flex-direction: column; padding: 0 16px 0 8px; font-size: 16px; }
+    .hud .pill { flex: 0 0 auto; text-align: left; }
+    .field { grid-area: field; max-width: none; gap: 4px; }
+    .controls { grid-area: controls; align-items: center; padding: 8px 16px 8px 14px; min-height: 0; }
+    .controls .btn { font-size: 22px; min-height: 64px; padding: 8px 12px; }
+    .ticker { grid-area: ticker; max-width: none; margin-top: 8px; }
+    .ticker-strip { padding: 5px 0; font-size: 17px; }
+    .center-screen { gap: 10px; }
+    .title-art { display: none; }
+    .scene { width: 150px; }
+    .night-a { font-size: 26px; }
+  }
+
+  /* ---------- Сокращение анимаций ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .pulse { animation: none; box-shadow: 0 6px 0 var(--yellow-dark), 0 0 0 5px rgba(255,198,26,.45); }
+    .tractor.moving .tr-inner { animation: none; }
+    .snow i { animation-duration: calc(var(--d) * 2.2); }
+    .snow i:nth-child(n+15) { display: none; }
+    .ticker-strip { animation-duration: calc(var(--tdur, 200s) * 1.4); }
+    .banner, .overlay, .card { animation: none; }
+    .track { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Титульный экран -->
+<section class="screen center-screen" id="title">
+  <div class="snow" data-snow="28"></div>
+  <h1 class="title-h">СНТ <span>«Кольчугино»</span><br>ЗИМОЙ</h1>
+  <div class="title-art" aria-hidden="true">
+    <div class="road"></div>
+    <div class="tractor" data-tractor></div>
+  </div>
+  <div class="title-lines">
+    <p>Игра-шутка, созданная для соседей.</p>
+    <p>Все персонажи вымышлены.</p>
+    <p>Если узнали себя — улыбнитесь.</p>
+  </div>
+  <button class="btn pulse" id="btnStart" type="button">День 1</button>
+</section>
+
+<!-- Игровой экран -->
+<section class="screen" id="game" hidden>
+  <div class="hud">
+    <div class="pill" id="hudDay">День 1 из 3</div>
+    <div class="pill" id="hudTime" aria-label="Осталось времени">⏱ 40 с</div>
+    <div class="pill" id="hudStreets">Улиц почищено: 0/9</div>
+    <div class="pill" id="hudExc">Отмазок: 0/40</div>
+  </div>
+  <div class="field" id="field">
+    <div class="banner" id="banner" role="status" aria-live="polite" hidden></div>
+  </div>
+  <div class="ticker" aria-label="Чат СНТ">
+    <div class="ticker-icon" aria-hidden="true">💬</div>
+    <div class="ticker-viewport"><div class="ticker-strip" id="tickerStrip"></div></div>
+  </div>
+  <div class="controls">
+    <button class="btn pulse" id="btnSweep" type="button">УБРАТЬ СНЕГ</button>
+  </div>
+</section>
+
+<!-- Карточка правления -->
+<div class="overlay" id="cardOverlay" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="cardHead">
+    <div class="card-body">
+      <div class="card-head" id="cardHead">ПРАВЛЕНИЕ СНТ</div>
+      <div class="card-icon" id="cardIcon" aria-hidden="true"></div>
+      <p class="card-quote" id="cardQuote"></p>
+    </div>
+    <button class="btn" id="btnCard" type="button">УБРАТЬ СНЕГ</button>
+  </div>
+</div>
+
+<!-- Итоги дня -->
+<section class="screen center-screen" id="summary" hidden>
+  <h2 class="h2" id="sumTitle">День 1 завершён</h2>
+  <div class="stats">
+    <p>Улиц почищено: <b id="sumStreets">0</b> из 9</p>
+    <p>Отмазок открыто: <b id="sumExc">0</b> из 40</p>
+  </div>
+  <button class="btn pulse" id="btnSummary" type="button">День 2</button>
+</section>
+
+<!-- Ночь -->
+<section class="screen center-screen" id="night" hidden>
+  <div class="snow" data-snow="40"></div>
+  <div class="scene" aria-hidden="true">
+    <div class="ground"></div>
+    <div class="chimney"></div>
+    <div class="roof-snow"></div>
+    <div class="roof"></div>
+    <div class="house">
+      <div class="window"></div>
+      <div class="door"></div>
+      <div class="house-snow"></div>
+    </div>
+  </div>
+  <p class="night-a" id="nightA"></p>
+  <p class="night-b" id="nightB"></p>
+  <button class="btn pulse" id="btnNight" type="button">День 2</button>
+</section>
+
+<!-- Финал -->
+<section class="screen center-screen" id="final" hidden>
+  <h2 class="h2">Отчёт правления</h2>
+  <p class="report"><span class="report-icon" aria-hidden="true">📋</span><span id="finalReport"></span></p>
+  <div class="stats">
+    <p>Улиц убрано за зиму: <b id="finStreets">0</b></p>
+    <p>Отмазок услышано: <b id="finExc">0</b> из 40</p>
+  </div>
+  <button class="btn pulse" id="btnAgain" type="button">Ещё раз</button>
+</section>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ===== Настройки баланса (всё в одном месте) ===== */
+  var CFG = {
+    DAYS: 3,
+    STREETS: 9,
+    DAY_ACTIVE_MS: 40000,  // активное время дня (только движение трактора)
+    MOVE_MS: 1700,         // длительность проезда трактора
+    SUCCESS_CHANCE: 0.35,  // шанс успешной уборки (остальное — отмазка)
+    BANNER_MS: 1100,       // показ плашки «Улица почищена»
+    RETURN_MS: 450,        // возврат трактора на старт
+    TICKER_PX_PER_SEC: 70, // скорость бегущей строки
+    SHOW_TIMER: true       // показывать остаток времени в верхней панели
+  };
+
+  /* ===== Согласованные тексты ===== */
+  var EXCUSES = [
+    [
+      { i: "💰", t: "Взносы не собраны с 4 участков. Дизель не залили. Ждём." },
+      { i: "💰", t: "На уборку снега выделено 0 ₽. На табличку «СНТ Кольчугино» — 40 000 ₽." },
+      { i: "👨‍👩‍👦", t: "Трактор в аренде у зятя председателя. Зятю некогда." },
+      { i: "👨‍👩‍👦", t: "Председатель на море. Вернётся к шашлыкам." },
+      { i: "👨‍👩‍👦", t: "Сторож — на свадьбе у дочки. Дочка — в Москве." },
+      { i: "🔧", t: "Бензин кончился. Правление решило: доедем на энтузиазме." },
+      { i: "🔧", t: "Шлагбаум замёрз. Само рассосётся." },
+      { i: "🔧", t: "Трактор сломан. Запчасть идёт из Китая. Курс доллара мешает." },
+      { i: "📋", t: "Председатель сказал: «А вы вообще кто? У нас всё под контролем»." },
+      { i: "📋", t: "Вопрос будет рассмотрен на следующем собрании." },
+      { i: "❄️", t: "Снег признан плановым. Согласован с природой." },
+      { i: "❄️", t: "Уборка отложена до гололёда. Гололёд — после снега. Снег — после уборки." },
+      { i: "👉", t: "Обратитесь в правление." }
+    ],
+    [
+      { i: "💰", t: "Смета на зиму не утверждена. Утвердим в мае." },
+      { i: "💰", t: "Деньги есть, но на другом счёте. Бухгалтер знает. Бухгалтер недоступен." },
+      { i: "💰", t: "Кассовый разрыв. Потерпите." },
+      { i: "👨‍👩‍👦", t: "Бухгалтер болеет. Вопрос требует бухгалтера." },
+      { i: "👨‍👩‍👦", t: "Механик уехал за запчастью. Запчасть ищут с 2023 года." },
+      { i: "🔧", t: "Ключ от трактора у сторожа. Сторож — у дочки. Дочка — в Москве." },
+      { i: "🔧", t: "Трактор на техосмотре. Техосмотр — в Твери." },
+      { i: "📋", t: "Собрание перенесено. На неопределённый срок." },
+      { i: "📋", t: "Вопрос передан в комиссию по вопросам снега." },
+      { i: "📋", t: "Комиссия по вопросам снега не собиралась с 2019 года." },
+      { i: "❄️", t: "Зима в этом году официально не объявлялась." },
+      { i: "❄️", t: "Уборка невозможна: мешает снег." },
+      { i: "👉", t: "Это не в моей компетенции. Обратитесь в правление." }
+    ],
+    [
+      { i: "💰", t: "Взносы за 2025 год ещё собираем. Какие снега?" },
+      { i: "💰", t: "Расходы на уборку в смету не закладывались. Закладывались на гирлянду." },
+      { i: "👨‍👩‍👦", t: "Я вам не председатель. Я такой же дачник." },
+      { i: "🔧", t: "Трактор продан. Кому — не помним." },
+      { i: "📋", t: "Не согласовано с правлением. Согласуйте с правлением." },
+      { i: "📋", t: "Самовольная уборка запрещена. Убирать будет правление. Когда-нибудь." },
+      { i: "📋", t: "Ваше обращение зарегистрировано. Номер обращения утерян." },
+      { i: "📋", t: "Оставьте заявку. Заявки принимаем с апреля." },
+      { i: "📋", t: "Телефон председателя вне зоны. Вне зоны. Вне зоны." },
+      { i: "❄️", t: "Снег растает сам к маю. Проверено годами." },
+      { i: "❄️", t: "Природа — не наша зона ответственности." },
+      { i: "❄️", t: "Улица признана «зоной естественного снежного покрова». Вопрос снят." },
+      { i: "❄️", t: "Правление отмечает плановый характер осадков." },
+      { i: "🐕", t: "Собака с 12-го участка не пускает. Вопрос будет поднят в мае." }
+    ]
+  ];
+  var TOTAL_EXCUSES = EXCUSES[0].length + EXCUSES[1].length + EXCUSES[2].length; // 40
+
+  var CHAT = [
+    "Опять не чищено!!!",
+    "Кто видел трактор?",
+    "Когда уже почистят?",
+    "У меня машина не выезжает!",
+    "А взносы мы сдавали!",
+    "Кто-нибудь знает телефон председателя?",
+    "Председатель не отвечает",
+    "Так и знала",
+    "Опять всё как всегда",
+    "А в прошлом году было лучше",
+    "Когда собрание?",
+    "Соседи, кто на 5-й? У вас чищено?",
+    "5-я не чищена!",
+    "У кого-нибудь трактор видели?",
+    "А что, зима уже?",
+    "Дожили",
+    "Ну это уже ни в какие ворота",
+    "Спасибо правлению за заботу 🙏",
+    "Мне к 8 утра на работу",
+    "Опять самому лопатой",
+    "Он не в курсе",
+    "Я ему писала, он прочитал и не ответил",
+    "В чате правления тишина",
+    "А на табличку деньги нашлись",
+    "Может, скинемся на трактор?",
+    "Опять скидываться?",
+    "Ну хоть снег красивый",
+    "Красиво, но не выехать",
+    "Всех с зимой!",
+    "А кто-нибудь вообще видел председателя?"
+  ];
+
+  // Третья ночь хранится в наборе текстов, но по сценарию не показывается.
+  var NIGHTS = [
+    { a: "Ночью выпал снег.", b: "Правление отмечает плановый характер осадков." },
+    { a: "Ночью снова выпал снег.", b: "Уборка отложена до улучшения погоды." },
+    { a: "Ночью выпал снег.", b: "Завтра — общее собрание. Повестка уточняется." }
+  ];
+
+  var REPORTS = [
+    "Уборочные работы выполнены в срок. Замечаний не поступало.",
+    "Уборка не проводилась в связи с отсутствием финансирования. Вопрос будет рассмотрен в мае.",
+    "Дачники не сдали взносы вовремя. Уборка невозможна по объективным причинам.",
+    "Расчистка не требуется: зима — естественный природный процесс.",
+    "Проезды свободны. Снег отсутствует. Просьба не распространять панику.",
+    "Выявлено нецелевое использование техники. Расход дизеля превышен в 3 раза.",
+    "Утверждена премия правлению за организацию зимнего содержания. Взносы предлагается поднять на 15%."
+  ];
+
+  /* ===== Утилиты ===== */
+  function $(id) { return document.getElementById(id); }
+  function randInt(n) { return Math.floor(Math.random() * n); }
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var k = a.length - 1; k > 0; k--) {
+      var j = randInt(k + 1), tmp = a[k]; a[k] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+  var now = (window.performance && performance.now) ? function () { return performance.now(); } : Date.now;
+
+  /* ===== Состояние =====
+     phase: title | ready | moving | result | card | returning | summary | night | final
+     gen  : номер «поколения». Любая смена этапа увеличивает его, и все
+            отложенные обработчики прошлого поколения становятся пустыми. */
+  var G = {
+    phase: "title",
+    gen: 0,
+    day: 1,
+    spentMs: 0,
+    cleared: [],          // очищенные сегодня улицы (true/false)
+    dayCleared: 0,
+    totalCleared: 0,
+    seen: {},             // увиденные уникальные отмазки (по тексту)
+    seenCount: 0,
+    deck: [],
+    deckPos: 0,
+    lastExcuse: null,
+    move: null,           // { street, success, startedAt }
+    report: ""
+  };
+
+  var timers = [];
+  function later(fn, ms) {
+    var myGen = G.gen;
+    var id = setTimeout(function () {
+      timers = timers.filter(function (x) { return x !== id; });
+      if (myGen !== G.gen) return;   // устаревший обработчик — ничего не делаем
+      fn();
+    }, Math.max(0, ms));
+    timers.push(id);
+  }
+  function newGeneration() {
+    G.gen++;
+    timers.forEach(clearTimeout);
+    timers = [];
+  }
+
+  /* ===== DOM ===== */
+  var screens = ["title", "game", "summary", "night", "final"];
+  function showScreen(id) {
+    screens.forEach(function (s) { $(s).hidden = (s !== id); });
+    if (id === "game") fitTicker();
+  }
+
+  var TRACTOR_HTML =
+    '<div class="tr-inner">' +
+      '<div class="tr-pipe"></div>' +
+      '<div class="tr-hood"></div>' +
+      '<div class="tr-light"></div>' +
+      '<div class="tr-cab"><div class="tr-win"></div></div>' +
+      '<div class="tr-blade"></div>' +
+      '<div class="tr-wheel rear"></div>' +
+      '<div class="tr-wheel front"></div>' +
+    '</div>';
+
+  var field = $("field");
+  var streetEls = [], tractorEls = [];
+  (function buildStreets() {
+    var banner = $("banner");
+    for (var s = 0; s < CFG.STREETS; s++) {
+      var row = document.createElement("div");
+      row.className = "street";
+      var label = document.createElement("div");
+      label.className = "street-label";
+      label.textContent = (s + 1) + "я";
+      var track = document.createElement("div");
+      track.className = "track";
+      var tr = document.createElement("div");
+      tr.className = "tractor";
+      tr.setAttribute("aria-hidden", "true");
+      tr.innerHTML = TRACTOR_HTML;
+      tr.hidden = true;
+      track.appendChild(tr);
+      row.appendChild(label);
+      row.appendChild(track);
+      field.insertBefore(row, banner);
+      streetEls.push(row);
+      tractorEls.push(tr);
+    }
+    document.querySelectorAll("[data-tractor]").forEach(function (el) {
+      el.innerHTML = TRACTOR_HTML;
+    });
+  })();
+
+  (function buildSnow() {
+    document.querySelectorAll("[data-snow]").forEach(function (box) {
+      var n = parseInt(box.getAttribute("data-snow"), 10) || 30;
+      var html = "";
+      for (var k = 0; k < n; k++) {
+        var size = 3 + Math.random() * 5;
+        var dur = 6 + Math.random() * 8;
+        html += '<i style="--x:' + (Math.random() * 100).toFixed(1) + '%;' +
+          '--s:' + size.toFixed(1) + 'px;' +
+          '--o:' + (0.5 + Math.random() * 0.5).toFixed(2) + ';' +
+          '--d:' + dur.toFixed(1) + 's;' +
+          '--dl:-' + (Math.random() * dur).toFixed(1) + 's;' +
+          '--dx:' + (Math.random() * 60 - 30).toFixed(0) + 'px"></i>';
+      }
+      box.innerHTML = html;
+    });
+  })();
+
+  var tickerStrip = $("tickerStrip");
+  (function buildTicker() {
+    var html = "";
+    for (var pass = 0; pass < 2; pass++) {       // дважды — для бесшовного цикла
+      for (var k = 0; k < CHAT.length; k++) {
+        html += "<span" + (pass ? ' aria-hidden="true"' : "") + "></span>";
+      }
+    }
+    tickerStrip.innerHTML = html;
+    var spans = tickerStrip.children;
+    for (var m = 0; m < spans.length; m++) spans[m].textContent = CHAT[m % CHAT.length];
+  })();
+  function fitTicker() {
+    var half = tickerStrip.scrollWidth / 2;
+    if (half > 0) tickerStrip.style.setProperty("--tdur", (half / CFG.TICKER_PX_PER_SEC).toFixed(1) + "s");
+  }
+  window.addEventListener("resize", function () { if (!$("game").hidden) fitTicker(); });
+
+  var btnSweep = $("btnSweep");
+  var overlay = $("cardOverlay");
+  var banner = $("banner");
+
+  function setSweepAvailable(on) {
+    btnSweep.classList.toggle("off", !on);
+    btnSweep.classList.toggle("pulse", on);
+    btnSweep.disabled = !on;
+  }
+  var hudTime = $("hudTime");
+  hudTime.hidden = !CFG.SHOW_TIMER;
+
+  function updateHud() {
+    $("hudDay").textContent = "День " + G.day + " из " + CFG.DAYS;
+    $("hudStreets").textContent = "Улиц почищено: " + G.dayCleared + "/" + CFG.STREETS;
+    $("hudExc").textContent = "Отмазок: " + G.seenCount + "/" + TOTAL_EXCUSES;
+    renderTime();
+  }
+
+  // Остаток показывается целыми секундами; во время проезда — плавно убывает.
+  function renderTime() {
+    if (!CFG.SHOW_TIMER) return;
+    var spent = G.spentMs;
+    if (G.phase === "moving" && G.move) spent += Math.min(now() - G.move.startedAt, CFG.MOVE_MS);
+    var left = Math.max(0, Math.ceil((CFG.DAY_ACTIVE_MS - spent) / 1000));
+    hudTime.textContent = "⏱ " + left + " с";
+  }
+  function timeLoop() {
+    renderTime();
+    if (G.phase === "moving") requestAnimationFrame(timeLoop);
+  }
+
+  /* ===== Трактор ===== */
+  var POS_START = "4px";
+  var POS_MID = "calc(50% - var(--tw) / 2)";
+  var POS_END = "calc(100% - var(--tw) - 4px)";
+
+  function placeTractor(s, pos, ms, easing) {
+    var tr = tractorEls[s];
+    tr.style.transitionDuration = ms + "ms";
+    tr.style.transitionTimingFunction = easing || "linear";
+    tr.style.left = pos;
+  }
+  function resetAllTractors() {
+    for (var s = 0; s < tractorEls.length; s++) {
+      var tr = tractorEls[s];
+      tr.classList.remove("moving");
+      tr.style.transitionDuration = "0ms";
+      tr.style.left = POS_START;
+      tr.hidden = true;
+    }
+  }
+
+  /* ===== Отмазки ===== */
+  function nextExcuse() {
+    if (G.deckPos >= G.deck.length) {
+      G.deck = shuffle(EXCUSES[G.day - 1]);
+      if (G.deck.length > 1 && G.deck[0] === G.lastExcuse) {
+        var tmp = G.deck[0]; G.deck[0] = G.deck[1]; G.deck[1] = tmp;
+      }
+      G.deckPos = 0;
+    }
+    var e = G.deck[G.deckPos++];
+    G.lastExcuse = e;
+    if (!G.seen[e.t]) { G.seen[e.t] = true; G.seenCount++; }
+    return e;
+  }
+
+  /* ===== Единый обработчик кнопки «УБРАТЬ СНЕГ» ===== */
+  function act() {
+    if (G.phase === "ready") startMove();
+    else if (G.phase === "card") closeCard();
+    // в остальных фазах нажатие игнорируется
+  }
+
+  function startMove() {
+    var remaining = CFG.DAY_ACTIVE_MS - G.spentMs;
+    if (remaining <= 0) { endDay(); return; }
+
+    G.phase = "moving";
+    setSweepAvailable(false);
+
+    var open = [];
+    for (var s = 0; s < CFG.STREETS; s++) if (!G.cleared[s]) open.push(s);
+
+    var success = open.length > 0 && Math.random() < CFG.SUCCESS_CHANCE;
+    var street = open.length > 0 ? open[randInt(open.length)] : randInt(CFG.STREETS);
+
+    var tr = tractorEls[street];
+    tr.hidden = false;
+    tr.style.transitionDuration = "0ms";
+    tr.style.left = POS_START;
+    void tr.offsetWidth;                       // фиксируем стартовую позицию
+    tr.classList.add("moving");
+    if (success) placeTractor(street, POS_END, CFG.MOVE_MS, "linear");
+    else placeTractor(street, POS_MID, CFG.MOVE_MS, "cubic-bezier(.25,.7,.35,1)");
+
+    G.move = { street: street, success: success, startedAt: now() };
+    requestAnimationFrame(timeLoop);
+
+    // Проезд всегда доигрывается до конца, даже если время дня кончится
+    // посередине: результат фиксируется, и только потом день завершается.
+    later(finishMove, CFG.MOVE_MS);
+  }
+
+  function finishMove() {
+    var m = G.move;
+    // Списываем ровно длительность проезда: задержки интерфейса и фоновая
+    // пауза вкладки не съедают игровое время.
+    G.spentMs = Math.min(CFG.DAY_ACTIVE_MS, G.spentMs + CFG.MOVE_MS);
+    tractorEls[m.street].classList.remove("moving");
+    G.phase = "result";
+    updateHud();
+
+    if (m.success && !G.cleared[m.street]) {
+      G.cleared[m.street] = true;
+      G.dayCleared++;
+      G.totalCleared++;
+      streetEls[m.street].classList.add("clean");
+      updateHud();
+      banner.textContent = "✓ Улица " + (m.street + 1) + " почищена";
+      banner.hidden = false;
+      later(function () {
+        banner.hidden = true;
+        returnTractor(m.street);
+      }, CFG.BANNER_MS);
+    } else {
+      showCard(nextExcuse());
+    }
+  }
+
+  function returnTractor(s) {
+    G.phase = "returning";
+    placeTractor(s, POS_START, CFG.RETURN_MS, "ease-in-out");
+    later(function () {
+      tractorEls[s].hidden = true;
+      G.move = null;
+      goReady();
+    }, CFG.RETURN_MS);
+  }
+
+  function goReady() {
+    if (G.spentMs >= CFG.DAY_ACTIVE_MS) { endDay(); return; }
+    G.phase = "ready";
+    setSweepAvailable(true);
+  }
+
+  /* ===== Карточка ===== */
+  function showCard(e) {
+    G.phase = "card";
+    updateHud();
+    $("cardIcon").textContent = e.i;
+    $("cardQuote").textContent = "«" + e.t + "»";
+    overlay.hidden = false;
+    $("btnCard").focus({ preventScroll: true });
+  }
+  // Кнопка карточки закрывает её и сразу запускает следующую попытку.
+  // Время дня не истекает, пока карточка открыта: если лимит уже набран,
+  // день завершается только после нажатия.
+  function closeCard() {
+    overlay.hidden = true;
+    if (G.move) {
+      var tr = tractorEls[G.move.street];
+      tr.classList.remove("moving");
+      tr.style.transitionDuration = "0ms";
+      tr.style.left = POS_START;
+      tr.hidden = true;
+      G.move = null;
+    }
+    if (G.spentMs >= CFG.DAY_ACTIVE_MS) { endDay(); return; }
+    G.phase = "ready";
+    startMove();
+  }
+
+  /* ===== Этапы игры ===== */
+  function newGame() {
+    G.totalCleared = 0;
+    G.seen = {};
+    G.seenCount = 0;
+    G.lastExcuse = null;
+    G.report = REPORTS[randInt(REPORTS.length)];
+  }
+
+  function startDay(n) {
+    newGeneration();
+    G.day = n;
+    G.spentMs = 0;
+    G.dayCleared = 0;
+    G.cleared = [];
+    for (var s = 0; s < CFG.STREETS; s++) {
+      G.cleared.push(false);
+      streetEls[s].classList.remove("clean");
+    }
+    G.deck = shuffle(EXCUSES[n - 1]);
+    G.deckPos = 0;
+    G.lastExcuse = null;
+    G.move = null;
+    overlay.hidden = true;
+    banner.hidden = true;
+    resetAllTractors();
+    updateHud();
+    showScreen("game");
+    G.phase = "ready";
+    setSweepAvailable(true);
+  }
+
+  function endDay() {
+    newGeneration();                // старые таймеры и анимации больше не влияют
+    overlay.hidden = true;
+    banner.hidden = true;
+    resetAllTractors();
+    setSweepAvailable(false);
+    G.move = null;
+
+    if (G.day < CFG.DAYS) {
+      G.phase = "summary";
+      $("sumTitle").textContent = "День " + G.day + " завершён";
+      $("sumStreets").textContent = G.dayCleared;
+      $("sumExc").textContent = G.seenCount;
+      $("btnSummary").textContent = "День " + (G.day + 1);
+      showScreen("summary");
+    } else {
+      G.phase = "final";
+      $("finalReport").textContent = G.report;
+      $("finStreets").textContent = G.totalCleared;
+      $("finExc").textContent = G.seenCount;
+      showScreen("final");
+    }
+  }
+
+  function showNight() {
+    newGeneration();
+    G.phase = "night";
+    var night = NIGHTS[G.day - 1];
+    $("nightA").textContent = night.a;
+    $("nightB").textContent = night.b;
+    $("btnNight").textContent = "День " + (G.day + 1);
+    showScreen("night");
+  }
+
+  function showTitle() {
+    newGeneration();
+    G.phase = "title";
+    showScreen("title");
+  }
+
+  /* ===== Кнопки ===== */
+  $("btnStart").addEventListener("click", function () {
+    if (G.phase !== "title") return;
+    newGame();
+    startDay(1);
+  });
+  btnSweep.addEventListener("click", act);
+  $("btnCard").addEventListener("click", act);
+  $("btnSummary").addEventListener("click", function () {
+    if (G.phase === "summary") showNight();
+  });
+  $("btnNight").addEventListener("click", function () {
+    if (G.phase === "night") startDay(G.day + 1);
+  });
+  $("btnAgain").addEventListener("click", function () {
+    if (G.phase === "final") showTitle();
+  });
+
+  showTitle();
+})();
+</script>
+</body>
+</html>
