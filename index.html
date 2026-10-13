@@ -21,6 +21,8 @@
     --yellow-dark: #b78400;
     --orange: #ff9f1c;
     --green: #2a9d5c;
+    --chat-red: #d93a3a;   /* красный акцент чата */
+    --stop-red: #ff6b6b;   /* статус «уборка остановлена» */
     --card: #1a2433;
     --text: #ffffff;
     --muted: #c9d6ea;
@@ -222,27 +224,50 @@
   }
   @keyframes pop { from { transform: translate(-50%, -50%) scale(.85); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
 
-  .ticker {
+  /* ---------- Общий чат СНТ ---------- */
+  .chat {
     width: 100%; max-width: 900px;
     flex: 0 0 auto;
     margin-top: 10px;
-    display: flex; align-items: center;
-    background: rgba(0,0,0,.28);
-    border-top: 1px solid rgba(255,255,255,.12); border-bottom: 1px solid rgba(255,255,255,.12);
+    display: flex; flex-direction: column;
+    background: #0a1629;
+    border-top: 4px solid var(--chat-red);
+    border-bottom: 1px solid rgba(255,255,255,.14);
     overflow: hidden;
   }
-  .ticker-icon { flex: 0 0 auto; padding: 0 10px 0 14px; font-size: 22px; background: inherit; z-index: 1; }
-  .ticker-viewport { flex: 1 1 auto; overflow: hidden; min-width: 0; }
-  .ticker-strip {
+  .chat-title {
+    flex: 0 0 auto;
+    padding: 5px 14px 3px;
+    font-size: clamp(15px, 4vw, 18px); font-weight: 900; letter-spacing: .06em;
+    color: #fff; white-space: nowrap;
+  }
+  .chat-viewport {
+    flex: 1 1 auto; min-width: 0; overflow: hidden;
+    padding: 4px 0 8px;
+    /* мягкие края, чтобы реплики не обрывались резко */
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+  }
+  .chat-strip {
     display: inline-flex; white-space: nowrap;
-    padding: 9px 0;
-    font-size: clamp(17px, 4.2vw, 21px); color: #e8f0fb;
-    animation: ticker var(--tdur, 200s) linear infinite;
+    animation: chat-run var(--tdur, 120s) linear infinite;
     will-change: transform;
   }
-  .ticker-strip span { padding-right: 2.2em; }
-  .ticker-strip span::before { content: "• "; color: var(--yellow); }
-  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  /* реплика — «пузырь» сообщения, отличается от заголовка цветом и формой */
+  .chat-strip span {
+    margin-right: 16px;
+    padding: 4px 13px;
+    border-radius: 14px 14px 14px 4px;
+    background: #e6ecf5; color: #13233d;
+    font-size: clamp(17px, 4.3vw, 20px); font-weight: 600; line-height: 1.3;
+  }
+  @keyframes chat-run { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  /* на широком экране заголовок слева, сообщения справа в одну строку */
+  @media (min-width: 600px) {
+    .chat { flex-direction: row; align-items: center; }
+    .chat-title { padding: 0 14px; border-right: 1px solid rgba(255,255,255,.18); }
+    .chat-viewport { padding: 8px 0; }
+  }
 
   .controls {
     flex: 0 0 auto; width: 100%;
@@ -285,7 +310,18 @@
   }
   .card .btn { flex: 0 0 auto; }
   @keyframes rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
-  .card-head { font-size: clamp(16px, 4vw, 20px); font-weight: 800; letter-spacing: .14em; color: var(--muted); }
+  .card-head { font-size: clamp(18px, 4.8vw, 23px); font-weight: 900; letter-spacing: .1em; color: #fff; }
+  /* статус неудачи: меньше заголовка, красный, отдельной плашкой */
+  .card-status {
+    max-width: 100%;
+    margin: -4px 0 4px;
+    padding: 4px 10px;
+    border: 2px solid #b3261e; border-radius: 8px;
+    background: rgba(179, 38, 30, .16);
+    color: var(--stop-red);
+    font-size: clamp(15px, 3.9vw, 19px); font-weight: 800; letter-spacing: .02em; line-height: 1.25;
+    text-wrap: balance;
+  }
   .card-icon { font-size: clamp(48px, 13vw, 68px); line-height: 1.1; }
   .card-quote {
     margin: 0;
@@ -342,13 +378,17 @@
     .field { padding: 0 10px; }
     .street { gap: 6px; }
     .street-label { width: 2.3em; }
+    /* чтобы статус «(УБОРКА СНЕГА ОСТАНОВЛЕНА)» влез в одну строку */
+    .overlay { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+    .card { padding-left: 10px; padding-right: 10px; }
+    .card-status { padding: 4px 6px; letter-spacing: 0; }
   }
   @media (max-height: 680px) {
     .hud { padding-bottom: 6px; gap: 4px 8px; }
     .controls { min-height: 76px; padding-top: 8px; }
     .controls .btn { min-height: 60px; padding: 8px 20px; }
-    .ticker { margin-top: 6px; }
-    .ticker-strip { padding: 6px 0; }
+    .chat { margin-top: 6px; }
+    .chat-viewport { padding-bottom: 6px; }
     .center-screen { gap: 12px; }
     .title-art { height: 54px; }
     .scene { width: min(60vw, 240px); }
@@ -358,7 +398,8 @@
   @media (max-height: 520px) {
     .card { padding: 12px 16px 14px; gap: 8px; }
     .card-body { gap: 4px; }
-    .card-head { font-size: 15px; }
+    .card-head { font-size: 17px; }
+    .card-status { font-size: 15px; margin: 0 0 2px; padding: 2px 10px; }
     .card-icon { font-size: 34px; }
     .card-quote { font-size: 21px; line-height: 1.28; }
     .card .btn { margin-top: 2px; min-height: 58px; font-size: 22px; }
@@ -375,7 +416,7 @@
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(200px, 32%);
       grid-template-rows: auto minmax(0, 1fr) auto;
-      grid-template-areas: "field hud" "field controls" "ticker ticker";
+      grid-template-areas: "field hud" "field controls" "chat chat";
       align-items: stretch;
     }
     .hud { grid-area: hud; flex-direction: column; padding: 0 16px 0 8px; font-size: 16px; }
@@ -383,8 +424,9 @@
     .field { grid-area: field; max-width: none; gap: 4px; }
     .controls { grid-area: controls; align-items: center; padding: 8px 16px 8px 14px; min-height: 0; }
     .controls .btn { font-size: 22px; min-height: 64px; padding: 8px 12px; }
-    .ticker { grid-area: ticker; max-width: none; margin-top: 8px; }
-    .ticker-strip { padding: 5px 0; font-size: 17px; }
+    .chat { grid-area: chat; max-width: none; margin-top: 8px; }
+    .chat-viewport { padding: 5px 0; }
+    .chat-strip span { font-size: 17px; }
     .center-screen { gap: 10px; }
     .title-art { display: none; }
     .scene { width: 150px; }
@@ -397,7 +439,7 @@
     .tractor.moving .tr-inner { animation: none; }
     .snow i { animation-duration: calc(var(--d) * 2.2); }
     .snow i:nth-child(n+15) { display: none; }
-    .ticker-strip { animation-duration: calc(var(--tdur, 200s) * 1.4); }
+    .chat-strip { animation-duration: calc(var(--tdur, 120s) * 1.4); }
     .banner, .overlay, .card { animation: none; }
     .track { transition: none; }
   }
@@ -432,9 +474,9 @@
   <div class="field" id="field">
     <div class="banner" id="banner" role="status" aria-live="polite" hidden></div>
   </div>
-  <div class="ticker" aria-label="Чат СНТ">
-    <div class="ticker-icon" aria-hidden="true">💬</div>
-    <div class="ticker-viewport"><div class="ticker-strip" id="tickerStrip"></div></div>
+  <div class="chat" role="region" aria-label="Общий чат СНТ">
+    <div class="chat-title">💬 ОБЩИЙ ЧАТ СНТ</div>
+    <div class="chat-viewport"><div class="chat-strip" id="chatStrip"></div></div>
   </div>
   <div class="controls">
     <button class="btn pulse" id="btnSweep" type="button">УБРАТЬ СНЕГ</button>
@@ -446,6 +488,7 @@
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="cardHead">
     <div class="card-body">
       <div class="card-head" id="cardHead">ПРАВЛЕНИЕ СНТ</div>
+      <div class="card-status" id="cardStatus">(УБОРКА СНЕГА ОСТАНОВЛЕНА)</div>
       <div class="card-icon" id="cardIcon" aria-hidden="true"></div>
       <p class="card-quote" id="cardQuote"></p>
     </div>
@@ -506,7 +549,7 @@
     SUCCESS_CHANCE: 0.10,  // шанс успешной уборки (остальное — отмазка)
     BANNER_MS: 1100,       // показ плашки «Улица почищена»
     RETURN_MS: 450,        // возврат трактора на старт
-    TICKER_PX_PER_SEC: 70, // скорость бегущей строки
+    CHAT_PX_PER_SEC: 90,   // скорость ленты общего чата, CSS-пикселей в секунду
     SHOW_TIMER: true       // показывать остаток времени в верхней панели
   };
 
@@ -664,7 +707,7 @@
   var screens = ["title", "game", "summary", "night", "final"];
   function showScreen(id) {
     screens.forEach(function (s) { $(s).hidden = (s !== id); });
-    if (id === "game") fitTicker();
+    if (id === "game") fitChat();
   }
 
   var TRACTOR_HTML =
@@ -725,23 +768,27 @@
     });
   })();
 
-  var tickerStrip = $("tickerStrip");
-  (function buildTicker() {
+  // Общий чат: лента из 30 реплик, повторённая дважды, сдвигается на половину
+  // своей длины — так цикл замыкается без скачка и пустого промежутка.
+  var chatStrip = $("chatStrip");
+  (function buildChat() {
     var html = "";
-    for (var pass = 0; pass < 2; pass++) {       // дважды — для бесшовного цикла
+    for (var pass = 0; pass < 2; pass++) {
       for (var k = 0; k < CHAT.length; k++) {
         html += "<span" + (pass ? ' aria-hidden="true"' : "") + "></span>";
       }
     }
-    tickerStrip.innerHTML = html;
-    var spans = tickerStrip.children;
+    chatStrip.innerHTML = html;
+    var spans = chatStrip.children;
     for (var m = 0; m < spans.length; m++) spans[m].textContent = CHAT[m % CHAT.length];
   })();
-  function fitTicker() {
-    var half = tickerStrip.scrollWidth / 2;
-    if (half > 0) tickerStrip.style.setProperty("--tdur", (half / CFG.TICKER_PX_PER_SEC).toFixed(1) + "s");
+  // Длительность цикла подбирается под ширину ленты, чтобы скорость
+  // была постоянной (CFG.CHAT_PX_PER_SEC) на любом экране.
+  function fitChat() {
+    var half = chatStrip.scrollWidth / 2;
+    if (half > 0) chatStrip.style.setProperty("--tdur", (half / CFG.CHAT_PX_PER_SEC).toFixed(1) + "s");
   }
-  window.addEventListener("resize", function () { if (!$("game").hidden) fitTicker(); });
+  window.addEventListener("resize", function () { if (!$("game").hidden) fitChat(); });
 
   var btnSweep = $("btnSweep");
   var overlay = $("cardOverlay");
